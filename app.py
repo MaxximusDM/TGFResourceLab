@@ -181,6 +181,11 @@ with st.sidebar:
             st.rerun()
         except Exception as e:
             st.error(f"Arquivo inválido: {e}")
+    st.divider()
+    st.caption(
+        "Ferramenta não oficial feita por fã. Sem afiliação ou endosso dos desenvolvedores "
+        "ou publicadores do jogo. Nomes e marcas pertencem aos seus respectivos donos."
+    )
 
 
 # ---------- Configuração ----------
