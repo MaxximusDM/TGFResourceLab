@@ -5,6 +5,11 @@ import pandas as pd
 import streamlit as st
 
 st.set_page_config(page_title="Calculadora de Recursos", page_icon="📊", layout="centered")
+st.markdown(
+    "<style>[data-testid='stToolbar'], [data-testid='stAppDeployButton'], #MainMenu "
+    "{display:none !important;}</style>",
+    unsafe_allow_html=True,
+)
 
 DEF = dict(
     res="Cash, Wood, Steel, Oil, Rubber, Wrenches", time=True, builds="Build 1, Build 2",
