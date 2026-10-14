@@ -202,6 +202,11 @@ with st.sidebar:
         except Exception as e:
             st.error(f"Arquivo inválido: {e}")
     st.divider()
+    st.link_button(
+        "💖 Apoiar com uma doação",
+        "https://buy.stripe.com/eVqfZh4gH6JX8Yb9eSg3600",
+        use_container_width=True,
+    )
     st.caption(
         "Ferramenta não oficial feita por fã. Sem afiliação ou endosso dos desenvolvedores "
         "ou publicadores do jogo. Nomes e marcas pertencem aos seus respectivos donos."
