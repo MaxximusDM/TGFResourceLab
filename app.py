@@ -74,6 +74,10 @@ EVENTOS = {
 }
 
 
+COL_ITENS = {"Box": 10, "Collection": 80, "Map": 200}  # pontos de cada item
+COL_ROUNDS = [9000, 18000, 27000, 36000, 45000]  # pontos para concluir cada round
+COL_BONUS = 21  # Collections ganhas ao concluir cada round
+
 CAL_INICIO = date(2025, 8, 10)  # início da primeira semana (domingo)
 CAL_CICLOS = [
     ("Semana do", ["Core", "Elites", "SW", "Elites"]),
@@ -139,7 +143,6 @@ def nav_names():
         names.append("Fazendas")
     if c["use_crates"] and len(ss.d["c"]):
         names.append("Caixas")
-    names += ["Calendário de eventos", "Recompensas"]
     return names
 
 
@@ -147,6 +150,10 @@ def nav_names():
 with st.sidebar:
     if ss.page == "solo":
         st.radio("Menu", ["Calendário de eventos", "Recompensas"], key="menu_solo")
+        if ss.cfg and st.button("📊 Calculadora", use_container_width=True):
+            ss.page = "app"
+            ss.edit = False
+            st.rerun()
     if ss.page in ("app", "solo"):
         if ss.page == "app" and ss.cfg and not ss.edit:
             names = nav_names()
@@ -159,6 +166,14 @@ with st.sidebar:
         if st.button("🏠 Início", use_container_width=True):
             ss.page = "welcome"
             st.rerun()
+    if ss.page != "solo":
+        st.divider()
+        st.subheader("🧰 Ferramentas")
+        for nome, ico in [("Calendário de eventos", "📅"), ("Recompensas", "🎁")]:
+            if st.button(f"{ico} {nome}", key=f"tool_{nome}", use_container_width=True):
+                ss.menu_solo = nome
+                ss.page = "solo"
+                st.rerun()
     st.divider()
     st.header("💾 Dados")
     if ss.cfg:
@@ -244,18 +259,6 @@ def welcome():
             f'{txt}</div></div>',
             unsafe_allow_html=True,
         )
-    st.write("")
-    st.subheader("Acesso rápido")
-    st.caption("Use sem precisar configurar seus recursos.")
-    b1, b2 = st.columns(2)
-    if b1.button("📅 Calendário de eventos", use_container_width=True):
-        ss.menu_solo = "Calendário de eventos"
-        ss.page = "solo"
-        st.rerun()
-    if b2.button("🎁 Recompensas", use_container_width=True):
-        ss.menu_solo = "Recompensas"
-        ss.page = "solo"
-        st.rerun()
     st.divider()
     if st.button("Continuar" if ss.cfg else "Configurar", type="primary"):
         ss.page = "app"
@@ -370,7 +373,8 @@ if page == "Calendário de eventos":
     st.stop()
 
 if page == "Recompensas":
-    for tab, (titulo, ev) in zip(st.tabs(list(EVENTOS)), EVENTOS.items()):
+    tabs = st.tabs(list(EVENTOS) + ["📚 Collections"])
+    for tab, (titulo, ev) in zip(tabs, EVENTOS.items()):
         with tab:
             kev, toks = ev["key"], ev["tokens"]
             st.subheader(titulo)
@@ -389,6 +393,43 @@ if page == "Recompensas":
                     else:
                         opc = " ou ".join(f"{int(-(-falta // p))} {k}" for k, p in toks.items())
                         st.error(f"Faltam {fmt(falta)} pontos (≈ {opc}).")
+
+    with tabs[-1]:
+        bonus = COL_BONUS * COL_ITENS["Collection"]
+        st.subheader("📚 Collections")
+        st.caption(
+            " · ".join(f"{k} = {p} pontos" for k, p in COL_ITENS.items())
+            + f" · Ao concluir cada round você ganha {COL_BONUS} Collections (somadas automaticamente)"
+        )
+        d["col"] = fit(d.get("col"), ["Quantidade"], list(COL_ITENS))
+        d["col"] = st.data_editor(d["col"], key=f"ed_col_{v}", use_container_width=True)
+        pts = sum(d["col"].loc["Quantidade", k] * p for k, p in COL_ITENS.items())
+
+        # rounds concluídos em ordem; cada bônus só entra após concluir o round
+        done = 0
+        for meta in COL_ROUNDS:
+            if pts + bonus * done >= meta:
+                done += 1
+            else:
+                break
+        efetivo = pts + bonus * done
+
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Pontos informados", fmt(pts))
+        m2.metric("Bônus ganho", fmt(bonus * done), help=f"{done * COL_BONUS} Collections")
+        m3.metric("Total", fmt(efetivo), delta=f"meta final {fmt(COL_ROUNDS[-1])}", delta_color="off")
+
+        for i, meta in enumerate(COL_ROUNDS, 1):
+            with st.container(border=True):
+                st.markdown(f"**Round {i}** — {fmt(meta)} pontos")
+                if i <= done:
+                    st.progress(1.0)
+                    st.success(f"Concluído! +{COL_BONUS} Collections ({fmt(bonus)} pontos) já somadas.")
+                else:
+                    falta = meta - efetivo
+                    st.progress(min(1.0, max(0.0, efetivo / meta)))
+                    opc = " ou ".join(f"{int(-(-falta // p))} {k}" for k, p in COL_ITENS.items())
+                    st.error(f"Faltam {fmt(falta)} pontos (≈ {opc}).")
     st.stop()
 
 # ---------- Cálculo ----------
