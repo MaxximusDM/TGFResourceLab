@@ -4,10 +4,31 @@ from datetime import date, timedelta
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="Calculadora de Recursos", page_icon="📊", layout="centered")
+st.set_page_config(
+    page_title="Calculadora de Recursos", page_icon="📊", layout="centered",
+    initial_sidebar_state="expanded",
+)
 st.markdown(
     "<style>[data-testid='stToolbar'], [data-testid='stAppDeployButton'], #MainMenu "
-    "{display:none !important;}</style>",
+    "{display:none !important;}"
+    "[data-testid='stSidebarHeader']{height:2rem !important;padding:0 .5rem !important;}"
+    "[data-testid='stSidebarUserContent']{padding-top:0 !important;padding-bottom:1rem !important;}"
+    "[data-testid='stSidebar'] [data-testid='stVerticalBlock']{gap:.6rem !important;}"
+    "[data-testid='stSidebar'] hr{margin:.9rem 0 1.1rem !important;}"
+    "[data-testid='stSidebar'] h3{padding:.2rem 0 .9rem !important;font-size:1.15rem !important;"
+    "line-height:1.6 !important;}"
+    "[data-testid='stSidebar'] [data-testid='stHeading']{overflow:visible !important;}"
+    "[data-testid='stSidebar'] label{margin-bottom:.25rem !important;line-height:1.4 !important;}"
+    "[data-testid='stSidebar'] [data-testid='stFileUploaderDropzoneInstructions']{display:none !important;}"
+    "[data-testid='stSidebar'] [data-testid='stFileUploaderDropzone']{padding:.5rem !important;"
+    "min-height:0 !important;}"
+    "[data-testid='stSidebar'] .stButton button,[data-testid='stSidebar'] .stDownloadButton button,"
+    "[data-testid='stSidebar'] [data-testid='stLinkButton'] a{min-height:2.4rem !important;"
+    "padding:.3rem .75rem !important;}"
+    "[data-testid='stSidebar'] [data-testid='stCaptionContainer']{font-size:.75rem !important;"
+    "line-height:1.45 !important;opacity:.75;}"
+    "[data-testid='stSidebar'] [data-testid='stFileUploader'] label{font-size:.9rem !important;}"
+    "</style>",
     unsafe_allow_html=True,
 )
 
@@ -175,7 +196,7 @@ with st.sidebar:
                 ss.page = "solo"
                 st.rerun()
     st.divider()
-    st.header("💾 Dados")
+    st.subheader("💾 Dados")
     if ss.cfg:
         payload = {
             "cfg": ss.cfg,
