@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 
 st.set_page_config(
-    page_title="Calculadora de Recursos", page_icon="📊", layout="centered",
+    page_title="Resource Calculator", page_icon="📊", layout="centered",
     initial_sidebar_state="expanded",
 )
 st.markdown(
@@ -46,7 +46,7 @@ ss.setdefault("ver", 0)
 ss.setdefault("page", "welcome")
 
 
-# ---------- Utilitários ----------
+# ---------- Utilities ----------
 def lst(s):
     out = []
     for x in s.split(","):
@@ -69,8 +69,7 @@ def nums(s):
 
 
 def fmt(v):
-    s = f"{v:,.2f}".rstrip("0").rstrip(".")
-    return s.replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"{v:,.2f}".rstrip("0").rstrip(".")
 
 
 def fit(df, idx, cols):
@@ -78,45 +77,48 @@ def fit(df, idx, cols):
     return base.reindex(index=idx, columns=cols).fillna(0.0).astype(float)
 
 
-TC = ["Dias", "Horas"]  # tempo guardado em dias + horas
-SPEEDS = {"5 min": 5, "30 min": 30, "1 h": 60, "3 h": 180, "8 h": 480}  # minutos de cada velocidade
-NO_BOX = {"wrenches"}   # recursos que não existem em caixas
+TC = ["Days", "Hours"]  # time stored as days + hours
+SPEEDS = {"5 min": 5, "30 min": 30, "1 h": 60, "3 h": 180, "8 h": 480}  # minutes per speedup
+NO_BOX = {"wrenches"}   # resources that don't come in crates
+# old (Portuguese) labels -> English, used when importing older files
+REN = {"Dias": "Days", "Horas": "Hours", "Estoque": "Stock", "Quantidade": "Quantity",
+       "Ficha Branca": "White Chip", "Ficha Azul": "Blue Chip", "Ficha Vermelha": "Red Chip"}
 EVENTOS = {
-    "🍹 Evento de bebidas": dict(
+    "🍹 Drinks Event": dict(
         key="ev",
         tokens={"Bar Token": 1, "Super Bar Token": 15},
-        metas={"🥇 Ouro": 1340, "🏆 Todas as recompensas": 2060},
+        metas={"🥇 Gold": 1340, "🏆 All rewards": 2060},
     ),
-    "🎰 Cassino": dict(
+    "🎰 Casino": dict(
         key="cas",
-        tokens={"Ficha Branca": 1, "Ficha Azul": 5, "Ficha Vermelha": 10},
-        metas={"🥇 Ouro": 1300, "🏆 Todas as recompensas": 1700},
+        tokens={"White Chip": 1, "Blue Chip": 5, "Red Chip": 10},
+        metas={"🥇 Gold": 1300, "🏆 All rewards": 1700},
     ),
 }
 
 
-COL_ITENS = {"Box": 10, "Collection": 80, "Map": 200}  # pontos de cada item
-COL_ROUNDS = [9000, 18000, 27000, 36000, 45000]  # pontos para concluir cada round
-COL_BONUS = 21  # Collections ganhas ao concluir cada round
+COL_ITENS = {"Box": 10, "Collection": 80, "Map": 200}  # points per item
+COL_ROUNDS = [9000, 18000, 27000, 36000, 45000]  # points to complete each round
+COL_BONUS = 21  # Collections earned when completing each round
 
-CAL_INICIO = date(2025, 8, 10)  # início da primeira semana (domingo)
+CAL_INICIO = date(2025, 8, 10)  # start of the first week (Sunday)
 CAL_CICLOS = [
-    ("Semana do", ["Core", "Elites", "SW", "Elites"]),
-    ("Evento 1", ["Technology Celebration", "African Collection", "Talent",
-                  "American Collection", "Resources", "Asia-Pacific Collection"]),
-    ("Evento 2", ["Champion league", "Family challenge", "Training"]),
-    ("Evento 3", ["Drinking", "Stars", "Casino", "Technology"]),
-    ("Evento 4", ["Anchors", "Invasion", "Treasure", "Dice"]),
-    ("Evento 5", ["Building Enhancement", "New Tech", "Capo Enhancement"]),
+    ("Week of", ["Core", "Elites", "SW", "Elites"]),
+    ("Event 1", ["Technology Celebration", "African Collection", "Talent",
+                 "American Collection", "Resources", "Asia-Pacific Collection"]),
+    ("Event 2", ["Champion league", "Family challenge", "Training"]),
+    ("Event 3", ["Drinking", "Stars", "Casino", "Technology"]),
+    ("Event 4", ["Anchors", "Invasion", "Treasure", "Dice"]),
+    ("Event 5", ["Building Enhancement", "New Tech", "Capo Enhancement"]),
 ]
-# (duração em semanas, semana-índice em que o 1º evento começa); padrão = (1, 0)
-CAL_DUR = {"Evento 4": (2, 59), "Evento 5": (3, 58)}
-CAL_GAP = {"Evento 5": 1}  # semanas de intervalo após cada evento
+# (duration in weeks, week index where the 1st event starts); default = (1, 0)
+CAL_DUR = {"Event 4": (2, 59), "Event 5": (3, 58)}
+CAL_GAP = {"Event 5": 1}  # gap weeks after each event
 
 
 def semana(n):
     ini = CAL_INICIO + timedelta(weeks=n)
-    row = {"Início": ini, "Fim": ini + timedelta(days=6)}
+    row = {"Start": ini, "End": ini + timedelta(days=6)}
     for nome, ciclo in CAL_CICLOS:
         dur, off = CAL_DUR.get(nome, (1, 0))
         gap = CAL_GAP.get(nome, 0)
@@ -133,7 +135,7 @@ def box_cols(c):
     return [r for r in lst(c["res"]) if r.lower() not in NO_BOX]
 
 
-NO_ALT = {"wrenches"}   # recursos que as fazendas não possuem
+NO_ALT = {"wrenches"}   # resources farms don't have
 
 
 def alt_cols(c):
@@ -157,21 +159,21 @@ def fmt_t(h):
 
 def nav_names():
     c = ss.cfg
-    names = ["Resumo", "Construções", "Estoque"]
+    names = ["Summary", "Buildings", "Stock"]
     if c["time"]:
-        names.append("Velocidades")
+        names.append("Speedups")
     if c["use_alts"] and len(ss.d["a"]):
-        names.append("Fazendas")
+        names.append("Farms")
     if c["use_crates"] and len(ss.d["c"]):
-        names.append("Caixas")
+        names.append("Crates")
     return names
 
 
-# ---------- Barra lateral: exportar / importar ----------
+# ---------- Sidebar: export / import ----------
 with st.sidebar:
     if ss.page == "solo":
-        st.radio("Menu", ["Calendário de eventos", "Recompensas"], key="menu_solo")
-        if ss.cfg and st.button("📊 Calculadora", use_container_width=True):
+        st.radio("Menu", ["Event calendar", "Rewards"], key="menu_solo")
+        if ss.cfg and st.button("📊 Calculator", use_container_width=True):
             ss.page = "app"
             ss.edit = False
             st.rerun()
@@ -181,35 +183,36 @@ with st.sidebar:
             if ss.get("menu_w") not in names:
                 ss.menu_w = ss.get("menu") if ss.get("menu") in names else names[0]
             ss.menu = st.radio("Menu", names, key="menu_w")
-            if st.button("⚙️ Configurar", use_container_width=True):
+            if st.button("⚙️ Configure", use_container_width=True):
                 ss.edit = True
                 st.rerun()
-        if st.button("🏠 Início", use_container_width=True):
+        if st.button("🏠 Home", use_container_width=True):
             ss.page = "welcome"
             st.rerun()
     if ss.page != "solo":
         st.divider()
-        st.subheader("🧰 Ferramentas")
-        for nome, ico in [("Calendário de eventos", "📅"), ("Recompensas", "🎁")]:
+        st.subheader("🧰 Tools")
+        for nome, ico in [("Event calendar", "📅"), ("Rewards", "🎁")]:
             if st.button(f"{ico} {nome}", key=f"tool_{nome}", use_container_width=True):
                 ss.menu_solo = nome
                 ss.page = "solo"
                 st.rerun()
     st.divider()
-    st.subheader("💾 Dados")
+    st.subheader("💾 Data")
     if ss.cfg:
         payload = {
             "cfg": ss.cfg,
             "d": {k: {"index": list(v.index), "columns": list(v.columns), "data": v.values.tolist()}
                   for k, v in ss.d.items()},
         }
-        st.download_button("Exportar dados", json.dumps(payload), "recursos.json", "application/json")
-    up = st.file_uploader("Importar dados", type="json")
-    if up and st.button("Carregar arquivo"):
+        st.download_button("Export data", json.dumps(payload), "resources.json", "application/json")
+    up = st.file_uploader("Import data", type="json")
+    if up and st.button("Load file"):
         try:
             data = json.load(up)
             ss.cfg = data["cfg"]
             ss.d = {k: pd.DataFrame(v["data"], index=v["index"], columns=v["columns"])
+                    .rename(index=REN, columns=REN)
                     for k, v in data["d"].items()}
             ss.cfg["denoms"] = DEF["denoms"]
             a0 = ss.d.get("a")
@@ -221,43 +224,43 @@ with st.sidebar:
             ss.ver += 1
             st.rerun()
         except Exception as e:
-            st.error(f"Arquivo inválido: {e}")
+            st.error(f"Invalid file: {e}")
     st.divider()
     st.link_button(
-        "💖 Apoiar com uma doação",
+        "💖 Support with a donation",
         "https://buy.stripe.com/eVqfZh4gH6JX8Yb9eSg3600",
         use_container_width=True,
     )
     st.caption(
-        "Ferramenta não oficial feita por fã. Sem afiliação ou endosso dos desenvolvedores "
-        "ou publicadores do jogo. Nomes e marcas pertencem aos seus respectivos donos."
+        "Unofficial fan-made tool. Not affiliated with or endorsed by the game's developers "
+        "or publishers. Names and trademarks belong to their respective owners."
     )
 
 
-# ---------- Configuração ----------
+# ---------- Configuration ----------
 def config():
     c = ss.cfg or DEF
-    st.title("⚙️ Configuração")
+    st.title("⚙️ Configuration")
     with st.form("form_cfg"):
-        res = st.text_input("Recursos (separados por vírgula)", c["res"])
-        time = st.checkbox("Controlar tempo", c["time"])
-        builds = st.text_input("Construções (separadas por vírgula)", c["builds"])
-        use_alts = st.checkbox("Tenho fazendas", c["use_alts"])
-        alts = st.text_input("Nomes das fazendas (separadas por vírgula)", c["alts"])
-        pct = st.number_input("% aproveitada das fazendas", 0, 100, int(c["pct"]))
-        ok = st.form_submit_button("Montar", type="primary")
+        res = st.text_input("Resources (comma-separated)", c["res"])
+        time = st.checkbox("Track time", c["time"])
+        builds = st.text_input("Buildings (comma-separated)", c["builds"])
+        use_alts = st.checkbox("I have farms", c["use_alts"])
+        alts = st.text_input("Farm names (comma-separated)", c["alts"])
+        pct = st.number_input("% used from farms", 0, 100, int(c["pct"]))
+        ok = st.form_submit_button("Build", type="primary")
 
     if ok:
         R = lst(res)
         if not R:
-            st.error("Informe ao menos um recurso")
+            st.error("Enter at least one resource")
             return
         ss.cfg = dict(res=res, time=time, builds=builds, use_alts=use_alts, alts=alts,
                       pct=pct, use_crates=True, denoms=DEF["denoms"])
         cols = R + (TC if time else [])
         d = ss.d
         d["b"] = fit(d.get("b"), lst(builds), cols)
-        d["mx"] = fit(d.get("mx"), ["Estoque"], R)
+        d["mx"] = fit(d.get("mx"), ["Stock"], R)
         d["a"] = fit(d.get("a"), lst(alts), alt_cols(ss.cfg))
         d["c"] = fit(d.get("c"), nums(DEF["denoms"]), box_cols(ss.cfg))
         sync_farm_crates(ss.cfg, d)
@@ -266,14 +269,14 @@ def config():
         st.rerun()
 
 
-# ---------- Boas-vindas ----------
+# ---------- Welcome ----------
 def welcome():
-    st.title("👋 Bem-vindo à Calculadora de Recursos")
-    st.write("Planeje suas construções e descubra quanto falta (ou sobra) de cada recurso.")
+    st.title("👋 Welcome to the Resource Calculator")
+    st.write("Plan your buildings and find out how much of each resource you're missing (or have left over).")
     itens = [
-        ("⚙️", "Configure", "Defina recursos, construções, fazendas e caixas do seu jeito."),
-        ("✏️", "Preencha", "Informe custos, estoque, fazendas e caixas nas tabelas."),
-        ("📊", "Acompanhe", "Veja no Resumo o que falta e o que sobra."),
+        ("⚙️", "Configure", "Set up resources, buildings, farms and crates your way."),
+        ("✏️", "Fill in", "Enter costs, stock, farms and crates in the tables."),
+        ("📊", "Track", "See in the Summary what's missing and what's left over."),
     ]
     for col, (ico, t, txt) in zip(st.columns(3), itens):
         col.markdown(
@@ -286,10 +289,10 @@ def welcome():
             unsafe_allow_html=True,
         )
     st.divider()
-    if st.button("Continuar" if ss.cfg else "Configurar", type="primary"):
+    if st.button("Continue" if ss.cfg else "Configure", type="primary"):
         ss.page = "app"
         st.rerun()
-    if ss.cfg and st.button("Configurar"):
+    if ss.cfg and st.button("Configure"):
         ss.page = "app"
         ss.edit = True
         st.rerun()
@@ -302,57 +305,57 @@ if ss.page == "welcome":
 
 if ss.page == "app" and (ss.cfg is None or ss.edit):
     config()
-    if ss.cfg and st.button("Cancelar"):
+    if ss.cfg and st.button("Cancel"):
         ss.edit = False
         st.rerun()
     st.stop()
 
 
-# ---------- Tela principal ----------
+# ---------- Main screen ----------
 solo = ss.page == "solo"
 c, d = ss.cfg or DEF, ss.d
 if not solo:
     sync_farm_crates(c, d)
-d["v"] = fit(d.get("v"), list(SPEEDS), ["Quantidade"])
+d["v"] = fit(d.get("v"), list(SPEEDS), ["Quantity"])
 R = lst(c["res"])
 cols = get_cols(c)
 v = ss.ver
 
 if solo:
-    page = ss.get("menu_solo", "Calendário de eventos")
+    page = ss.get("menu_solo", "Event calendar")
 else:
     names = nav_names()
     page = ss.get("menu") if ss.get("menu") in names else names[0]
 st.title(f"📊 {page}")
 
-if page == "Construções":
+if page == "Buildings":
     if len(d["b"]):
         d["b"] = st.data_editor(d["b"], key=f"ed_b_{v}", use_container_width=True)
     else:
-        st.info("Nenhuma construção. Adicione em ⚙️.")
-if page == "Estoque":
+        st.info("No buildings. Add them in ⚙️.")
+if page == "Stock":
     d["mx"] = st.data_editor(d["mx"].reindex(columns=R, fill_value=0.0), key=f"ed_mx_{v}", use_container_width=True)
-if page == "Fazendas":
+if page == "Farms":
     with st.container():
-        st.caption(f"Aproveitado: {c['pct']}%")
+        st.caption(f"Used: {c['pct']}%")
         d["a"] = st.data_editor(d["a"], key=f"ed_a_{v}", use_container_width=True)
         a = d["a"]
         ap = a * c["pct"] / 100
         tabela = pd.concat([
             ap,
-            a.sum().to_frame("Total bruto").T,
-            ap.sum().to_frame("Total aproveitado").T,
+            a.sum().to_frame("Gross total").T,
+            ap.sum().to_frame("Used total").T,
         ])
-        tabela.index = [f"{i} (aproveitado)" for i in ap.index] + ["Total bruto", "Total aproveitado"]
-        st.subheader("Cálculo das fazendas")
+        tabela.index = [f"{i} (used)" for i in ap.index] + ["Gross total", "Used total"]
+        st.subheader("Farm calculation")
         st.dataframe(tabela.style.format(fmt), use_container_width=True)
-if page == "Caixas":
-    st.subheader("Caixas principais")
-    st.caption("Quantidade de caixas de cada valor (valores fixos)")
+if page == "Crates":
+    st.subheader("Main crates")
+    st.caption("Number of crates of each value (fixed values)")
     d["c"] = st.data_editor(d["c"], key=f"ed_c_{v}", use_container_width=True)
     if c["use_alts"] and lst(c["alts"]):
-        st.subheader("Caixas das fazendas")
-        st.caption(f"Aproveitado: {c['pct']}%")
+        st.subheader("Farm crates")
+        st.caption(f"Used: {c['pct']}%")
         farms = lst(c["alts"])
         for tab, fa in zip(st.tabs(farms), farms):
             with tab:
@@ -360,78 +363,78 @@ if page == "Caixas":
                     d[f"cf_{fa}"], key=f"ed_cf_{fa}_{v}", use_container_width=True
                 )
 
-if page == "Velocidades":
-    st.caption("Quantidade de velocidades que você possui de cada tempo")
+if page == "Speedups":
+    st.caption("How many speedups of each duration you own")
     d["v"] = st.data_editor(d["v"], key=f"ed_v_{v}", use_container_width=True)
 
-if page == "Calendário de eventos":
+if page == "Event calendar":
     hoje = date.today()
     atual = (hoje - CAL_INICIO).days // 7
-    qtd = st.slider("Semanas futuras exibidas", 4, 52, 12)
+    qtd = st.slider("Future weeks shown", 4, 52, 4)
     df = pd.DataFrame([semana(n) for n in range(atual - 1, atual + qtd + 1)])
-    df.insert(0, "Status", ["Anterior", "Atual"] + [""] * qtd)
-    for k in ("Início", "Fim"):
+    df.insert(0, "Status", ["Previous", "Current"] + [""] * qtd)
+    for k in ("Start", "End"):
         df[k] = df[k].map(lambda x: x.strftime("%d/%m/%Y"))
     st.dataframe(df, hide_index=True, use_container_width=True)
 
-    st.subheader("Próxima ocorrência")
+    st.subheader("Next occurrence")
     todos = sorted({e for _, ciclo in CAL_CICLOS for e in ciclo})
-    ev_sel = st.selectbox("Evento", todos)
+    ev_sel = st.selectbox("Event", todos)
     for n in range(atual, atual + 13):
         s = semana(n)
         if ev_sel in [s[k] for k, _ in CAL_CICLOS]:
-            quando = "nesta semana" if n == atual else f"em {n - atual} semana(s)"
-            st.info(f"**{ev_sel}**: {s['Início']:%d/%m/%Y} a {s['Fim']:%d/%m/%Y} ({quando})")
+            quando = "this week" if n == atual else f"in {n - atual} week(s)"
+            st.info(f"**{ev_sel}**: {s['Start']:%d/%m/%Y} to {s['End']:%d/%m/%Y} ({quando})")
             break
 
-    st.subheader("Consultar por data")
-    dt = st.date_input("Data", hoje, format="DD/MM/YYYY")
+    st.subheader("Look up by date")
+    dt = st.date_input("Date", hoje, format="DD/MM/YYYY")
     nd = (dt - CAL_INICIO).days // 7
     if nd < 0:
-        st.warning(f"Data anterior ao início do calendário ({CAL_INICIO:%d/%m/%Y}).")
+        st.warning(f"Date is before the calendar start ({CAL_INICIO:%d/%m/%Y}).")
     else:
         sd = semana(nd)
-        st.info(f"Semana de {sd['Início']:%d/%m/%Y} a {sd['Fim']:%d/%m/%Y}")
+        st.info(f"Week of {sd['Start']:%d/%m/%Y} to {sd['End']:%d/%m/%Y}")
         st.dataframe(
-            pd.DataFrame([(k, sd[k]) for k, _ in CAL_CICLOS], columns=["Categoria", "Evento"]),
+            pd.DataFrame([(k, sd[k]) for k, _ in CAL_CICLOS], columns=["Category", "Event"]),
             hide_index=True, use_container_width=True,
         )
     st.stop()
 
-if page == "Recompensas":
+if page == "Rewards":
     tabs = st.tabs(list(EVENTOS) + ["📚 Collections"])
     for tab, (titulo, ev) in zip(tabs, EVENTOS.items()):
         with tab:
             kev, toks = ev["key"], ev["tokens"]
             st.subheader(titulo)
-            st.caption(" · ".join(f"{k} = {p} ponto{'s' if p > 1 else ''}" for k, p in toks.items()))
-            d[kev] = fit(d.get(kev), ["Quantidade"], list(toks))
+            st.caption(" · ".join(f"{k} = {p} point{'s' if p > 1 else ''}" for k, p in toks.items()))
+            d[kev] = fit(d.get(kev), ["Quantity"], list(toks))
             d[kev] = st.data_editor(d[kev], key=f"ed_{kev}_{v}", use_container_width=True)
-            pts = sum(d[kev].loc["Quantidade", k] * p for k, p in toks.items())
-            st.metric("Pontos totais", fmt(pts))
+            pts = sum(d[kev].loc["Quantity", k] * p for k, p in toks.items())
+            st.metric("Total points", fmt(pts))
             for nome, meta in ev["metas"].items():
                 falta = max(0, meta - pts)
                 with st.container(border=True):
-                    st.markdown(f"**{nome}** — {fmt(meta)} pontos")
+                    st.markdown(f"**{nome}** — {fmt(meta)} points")
                     st.progress(min(1.0, pts / meta))
                     if falta == 0:
-                        st.success(f"Meta atingida! Sobram {fmt(pts - meta)} pontos.")
+                        st.success(f"Goal reached! {fmt(pts - meta)} points left over.")
                     else:
-                        opc = " ou ".join(f"{int(-(-falta // p))} {k}" for k, p in toks.items())
-                        st.error(f"Faltam {fmt(falta)} pontos (≈ {opc}).")
+                        opc = " or ".join(f"{int(-(-falta // p))} {k}" for k, p in toks.items())
+                        st.error(f"{fmt(falta)} points missing (≈ {opc}).")
 
     with tabs[-1]:
         bonus = COL_BONUS * COL_ITENS["Collection"]
         st.subheader("📚 Collections")
         st.caption(
-            " · ".join(f"{k} = {p} pontos" for k, p in COL_ITENS.items())
-            + f" · Ao concluir cada round você ganha {COL_BONUS} Collections (somadas automaticamente)"
+            " · ".join(f"{k} = {p} points" for k, p in COL_ITENS.items())
+            + f" · Completing each round earns you {COL_BONUS} Collections (added automatically)"
         )
-        d["col"] = fit(d.get("col"), ["Quantidade"], list(COL_ITENS))
+        d["col"] = fit(d.get("col"), ["Quantity"], list(COL_ITENS))
         d["col"] = st.data_editor(d["col"], key=f"ed_col_{v}", use_container_width=True)
-        pts = sum(d["col"].loc["Quantidade", k] * p for k, p in COL_ITENS.items())
+        pts = sum(d["col"].loc["Quantity", k] * p for k, p in COL_ITENS.items())
 
-        # rounds concluídos em ordem; cada bônus só entra após concluir o round
+        # completed rounds in order; each bonus only counts after finishing its round
         done = 0
         for meta in COL_ROUNDS:
             if pts + bonus * done >= meta:
@@ -441,24 +444,24 @@ if page == "Recompensas":
         efetivo = pts + bonus * done
 
         m1, m2, m3 = st.columns(3)
-        m1.metric("Pontos informados", fmt(pts))
-        m2.metric("Bônus ganho", fmt(bonus * done), help=f"{done * COL_BONUS} Collections")
-        m3.metric("Total", fmt(efetivo), delta=f"meta final {fmt(COL_ROUNDS[-1])}", delta_color="off")
+        m1.metric("Entered points", fmt(pts))
+        m2.metric("Bonus earned", fmt(bonus * done), help=f"{done * COL_BONUS} Collections")
+        m3.metric("Total", fmt(efetivo), delta=f"final goal {fmt(COL_ROUNDS[-1])}", delta_color="off")
 
         for i, meta in enumerate(COL_ROUNDS, 1):
             with st.container(border=True):
-                st.markdown(f"**Round {i}** — {fmt(meta)} pontos")
+                st.markdown(f"**Round {i}** — {fmt(meta)} points")
                 if i <= done:
                     st.progress(1.0)
-                    st.success(f"Concluído! +{COL_BONUS} Collections ({fmt(bonus)} pontos) já somadas.")
+                    st.success(f"Completed! +{COL_BONUS} Collections ({fmt(bonus)} points) already added.")
                 else:
                     falta = meta - efetivo
                     st.progress(min(1.0, max(0.0, efetivo / meta)))
-                    opc = " ou ".join(f"{int(-(-falta // p))} {k}" for k, p in COL_ITENS.items())
-                    st.error(f"Faltam {fmt(falta)} pontos (≈ {opc}).")
+                    opc = " or ".join(f"{int(-(-falta // p))} {k}" for k, p in COL_ITENS.items())
+                    st.error(f"{fmt(falta)} points missing (≈ {opc}).")
     st.stop()
 
-# ---------- Cálculo ----------
+# ---------- Calculation ----------
 zero = pd.Series(0.0, index=cols)
 tot = d["b"].sum().reindex(cols, fill_value=0.0)
 
@@ -484,73 +487,73 @@ fbox = sum(fboxes.values(), zero)
 box_all = box + fbox
 
 has_crates = c["use_crates"] and len(d["c"]) > 0
-if page == "Resumo" and has_crates:
+if page == "Summary" and has_crates:
     if "add_w" not in ss:
         ss.add_w = ss.get("add", False)
-    ss.add = st.toggle("Somar caixas ao estoque", key="add_w")
+    ss.add = st.toggle("Add crates to stock", key="add_w")
 add = bool(ss.get("add", False)) and has_crates
 have = d["mx"].iloc[0].reindex(cols, fill_value=0.0) + free + (box_all if add else zero)
 need = tot - have
 
-# tempo total em horas (dias * 24 + horas), base para as velocidades
-tot_h = tot["Dias"] * 24 + tot["Horas"] if c["time"] else 0.0
-spd_h = sum(d["v"].loc[k, "Quantidade"] * m for k, m in SPEEDS.items()) / 60
+# total time in hours (days * 24 + hours), basis for speedups
+tot_h = tot["Days"] * 24 + tot["Hours"] if c["time"] else 0.0
+spd_h = sum(d["v"].loc[k, "Quantity"] * m for k, m in SPEEDS.items()) / 60
 have_h = spd_h if c["time"] else 0.0
 
-# ---------- Cálculo das caixas ----------
-if page == "Caixas":
-    st.subheader("Cálculo das caixas")
+# ---------- Crate calculation ----------
+if page == "Crates":
+    st.subheader("Crate calculation")
     bc = box_cols(c)
-    linhas = {"Caixas principais": box.reindex(bc, fill_value=0.0)}
+    linhas = {"Main crates": box.reindex(bc, fill_value=0.0)}
     for fa, s in fboxes.items():
-        linhas[f"{fa} (aproveitado)"] = s.reindex(bc, fill_value=0.0)
+        linhas[f"{fa} (used)"] = s.reindex(bc, fill_value=0.0)
     df_cx = pd.DataFrame(linhas).T
     df_cx.loc["Total"] = df_cx.sum()
     st.dataframe(df_cx.style.format(fmt), use_container_width=True)
     st.stop()
 
-# ---------- Velocidades ----------
-if page == "Velocidades":
-    st.subheader("Cálculo das velocidades")
+# ---------- Speedups ----------
+if page == "Speedups":
+    st.subheader("Speedup calculation")
     dif = spd_h - tot_h
     m1, m2, m3 = st.columns(3)
-    m1.metric("Tempo das construções", fmt_t(tot_h))
-    m2.metric("Suas velocidades", fmt_t(spd_h))
-    m3.metric("Sobra" if dif >= 0 else "Falta", fmt_t(abs(dif)))
+    m1.metric("Building time", fmt_t(tot_h))
+    m2.metric("Your speedups", fmt_t(spd_h))
+    m3.metric("Surplus" if dif >= 0 else "Missing", fmt_t(abs(dif)))
     if dif >= 0:
-        st.success("Você tem velocidades suficientes para concluir as construções.")
+        st.success("You have enough speedups to finish the buildings.")
     else:
-        st.error(f"Faltam {fmt_t(-dif)} de velocidades para concluir as construções.")
+        st.error(f"You're missing {fmt_t(-dif)} of speedups to finish the buildings.")
     linhas = {
-        k: {"Quantidade": d["v"].loc[k, "Quantidade"], "Tempo total": fmt_t(d["v"].loc[k, "Quantidade"] * m / 60)}
+        k: {"Quantity": d["v"].loc[k, "Quantity"], "Total time": fmt_t(d["v"].loc[k, "Quantity"] * m / 60)}
         for k, m in SPEEDS.items()
     }
     st.dataframe(pd.DataFrame(linhas).T, use_container_width=True)
     st.stop()
 
-# ---------- Estoque total ----------
-if page == "Estoque":
-    st.subheader("Estoque total")
-    linhas = {"Estoque manual": d["mx"].iloc[0].reindex(R, fill_value=0.0)}
+# ---------- Total stock ----------
+if page == "Stock":
+    st.subheader("Total stock")
+    linhas = {"Manual stock": d["mx"].iloc[0].reindex(R, fill_value=0.0)}
     if c["use_alts"] and len(d["a"]):
-        linhas["Fazendas (aproveitado)"] = free.reindex(R, fill_value=0.0)
+        linhas["Farms (used)"] = free.reindex(R, fill_value=0.0)
     if has_crates:
-        linhas["Caixas"] = box.reindex(R, fill_value=0.0)
+        linhas["Crates"] = box.reindex(R, fill_value=0.0)
     if fboxes:
-        linhas["Caixas das fazendas (aproveitado)"] = fbox.reindex(R, fill_value=0.0)
+        linhas["Farm crates (used)"] = fbox.reindex(R, fill_value=0.0)
     df_tot = pd.DataFrame(linhas).T
     df_tot.loc["Total"] = df_tot.sum()
     st.dataframe(df_tot.style.format(fmt), use_container_width=True)
     st.stop()
 
-# ---------- Resumo ----------
-if page != "Resumo":
+# ---------- Summary ----------
+if page != "Summary":
     st.stop()
 
-st.subheader("Resumo")
+st.subheader("Summary")
 items = [(k, have[k], tot[k], False) for k in R]
 if c["time"]:
-    items.append(("Tempo", have_h, tot_h, True))
+    items.append(("Time", have_h, tot_h, True))
 for i in range(0, len(items), 3):
     row = st.columns(3)
     for col, (k, h, t, is_t) in zip(row, items[i:i + 3]):
@@ -561,15 +564,15 @@ for i in range(0, len(items), 3):
             st.metric(k, f"{ff(h)} / {ff(t)}", delta=delta)
             pr = h / t if t > 0 else 1.0
             st.progress(min(1.0, max(0.0, pr)))
-            st.caption("Falta" if n > 0 else "Sobra" if n < 0 else "Exato")
+            st.caption("Missing" if n > 0 else "Surplus" if n < 0 else "Exact")
 
 if c["use_crates"] and len(d["c"]):
-    with st.expander("Total das caixas"):
+    with st.expander("Crate totals"):
         for k in R:
             st.write(f"**{k}:** {fmt(box_all[k])}")
 
 if c["use_alts"] and len(d["a"]):
-    with st.expander("Total das fazendas"):
+    with st.expander("Farm totals"):
         for k in alt_cols(c):
             bruto = d["a"][k].sum()
-            st.write(f"**{k}:** {fmt(bruto)} bruto → {fmt(bruto * c['pct'] / 100)} aproveitado")
+            st.write(f"**{k}:** {fmt(bruto)} gross → {fmt(bruto * c['pct'] / 100)} used")
