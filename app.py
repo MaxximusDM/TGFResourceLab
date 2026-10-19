@@ -9,8 +9,11 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 st.markdown(
-    "<style>[data-testid='stToolbar'], [data-testid='stAppDeployButton'], #MainMenu "
+    "<style>[data-testid='stAppDeployButton'], [data-testid='stMainMenu'], "
+    "[data-testid='stToolbarActions'], #MainMenu "
     "{display:none !important;}"
+    "[data-testid='stExpandSidebarButton'], [data-testid='stSidebarCollapsedControl']"
+    "{visibility:visible !important;}"
     "[data-testid='stSidebarHeader']{height:2rem !important;padding:0 .5rem !important;}"
     "[data-testid='stSidebarUserContent']{padding-top:0 !important;padding-bottom:1rem !important;}"
     "[data-testid='stSidebar'] [data-testid='stVerticalBlock']{gap:.6rem !important;}"
